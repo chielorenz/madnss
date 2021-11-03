@@ -1,0 +1,8 @@
+{
+  "name": "madnss",
+  "version": "0.0.1",
+  "type": "module",
+  "dependencies": {
+    "markdown-it": "^12.2.0"
+  }
+}
