@@ -1,7 +1,13 @@
 import { readdir, readFile, writeFile, mkdir, stat } from "fs/promises";
-import path from "path";
+import { join, dirname } from "path";
+import { fileURLToPath } from "url";
 import MarkdownIt from "markdown-it";
 const md = new MarkdownIt();
+const __dirname = dirname(fileURLToPath(import.meta.url));
+
+var template = await readFile(join(__dirname, "template.html"), {
+  encoding: "utf8",
+});
 
 /**
  * Create a folder if it does not exist
@@ -13,6 +19,7 @@ const createFolder = async (path) => {
 };
 
 /**
+ * Check if a folder exists
  *
  * @param {string} path Folder path
  * @returns
@@ -44,17 +51,23 @@ export default async (source, dest) => {
   try {
     const files = await readdir(source);
     for (const file of files) {
-      const data = await readFile(path.join(source, file), {
-        encoding: "utf8",
-      });
+      var stats = await stat(join(source, file));
+      var isMd = file.split(".").pop() === "md";
 
-      var result = md.render(data);
-      var name = file.replace(".md", ".html");
+      if (stats.isFile() && isMd) {
+        const data = await readFile(join(source, file), {
+          encoding: "utf8",
+        });
 
-      writeFile(path.join(dest, name), result);
+        var result = md.render(data);
+        var html = template.replace("<slot>", result);
+        var name = file.replace(".md", ".html");
+
+        writeFile(join(dest, name), html);
+      }
     }
 
-    console.log("All done");
+    console.log(`Build generated on ${dest}`);
   } catch (e) {
     console.log(e);
   }

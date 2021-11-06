@@ -2,7 +2,15 @@
   "name": "madnss",
   "version": "0.0.1",
   "type": "module",
+  "scripts": {
+    "dev": "node bin/madnss.js init dev && nodemon -e js,html --ignore dev/ bin/madnss.js serve dev dev/public"
+  },
   "dependencies": {
+    "chokidar": "^3.5.2",
+    "live-server": "^1.2.1",
     "markdown-it": "^12.2.0"
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.14"
   }
 }
