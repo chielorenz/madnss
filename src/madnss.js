@@ -2,10 +2,9 @@ import { readdir, readFile, writeFile, mkdir, stat } from "fs/promises";
 import { join, dirname } from "path";
 import { fileURLToPath } from "url";
 import MarkdownIt from "markdown-it";
-const md = new MarkdownIt();
 const __dirname = dirname(fileURLToPath(import.meta.url));
-
-var template = await readFile(join(__dirname, "template.html"), {
+const md = new MarkdownIt();
+const template = await readFile(join(__dirname, "template.html"), {
   encoding: "utf8",
 });
 
