@@ -4,8 +4,10 @@ import fs from "fs";
 import chokidar from "chokidar";
 import server from "live-server";
 import madnss from "../src/madnss.js";
+import { execSync } from "child_process";
 
 // Available commands:
+// madnss init [source]
 // madnss build [source] [dest]
 // madnss watch [source] [dest]
 // madnss serve [source]
@@ -37,7 +39,7 @@ const watch = async (source, dest) => {
  *
  * @param {strind} dest
  */
-const demo = async (dest) => {
+const demo = async (source, dest) => {
   if (fs.existsSync(source)) {
     console.log(`Cannot create demo on existing folder "${source}"`);
   } else {
@@ -55,11 +57,23 @@ const demo = async (dest) => {
     var data = `---\n<meta charset="utf-8">\n---`;
     fs.writeFileSync(path.join(source, "_globals.md"), data);
 
-    madnss(source, path.join(source, "public"));
+    madnss(source, dest);
   }
 };
 
 switch (command) {
+  case "init":
+    console.log(`Initializing Madnss project on "${source}"`);
+    execSync("npm i https://github.com/b1n01/madnss");
+    execSync(
+      "node -p \"JSON.stringify({...require('./package.json'), scripts: {watch: 'madnss watch'}}, null, 2)\" > package-updated.json"
+    );
+    execSync("mv package-updated.json package.json");
+    execSync("node ./node_modules/madnss/bin/madnss.js demo src public", {
+      stdio: "inherit",
+    });
+    console.log('Run "npm run dev" to serve your projet');
+    break;
   case "build":
     madnss(source, dest);
     break;
@@ -71,7 +85,7 @@ switch (command) {
     server.start({ root: dest });
     break;
   case "demo":
-    demo(source);
+    demo(source, dest);
     break;
   default:
     console.log(`Invalid command "${command}"`);
