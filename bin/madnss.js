@@ -11,7 +11,7 @@ import { execSync } from "child_process";
 // madnss build [source] [dest]
 // madnss watch [source] [dest]
 // madnss serve [source]
-// madnss demo [source]
+// madnss demo [source] [dest]
 
 // TODO use npm i commander chalk
 // to handle commands
@@ -51,7 +51,7 @@ const demo = async (source, dest) => {
     var data = `---\n<title>About | Madnss</title>\n---\n# About\n<slot name="nav">`;
     fs.writeFileSync(path.join(source, "about.md"), data);
 
-    var data = `- [index.html](index.html)\n- [about.html](about.html)\n`;
+    var data = `- [Home](index.html)\n- [About](about.html)\n`;
     fs.writeFileSync(path.join(source, "_nav.md"), data);
 
     var data = `---\n<meta charset="utf-8">\n---`;
