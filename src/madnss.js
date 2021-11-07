@@ -48,21 +48,34 @@ export default async (source, dest) => {
   await createFolder(dest);
 
   try {
+    var partials = {};
     const files = await readdir(source);
+    console.log(files);
+    files.sort();
+
     for (const file of files) {
       var stats = await stat(join(source, file));
       var isMd = file.split(".").pop() === "md";
 
       if (stats.isFile() && isMd) {
-        const data = await readFile(join(source, file), {
+        var data = await readFile(join(source, file), {
           encoding: "utf8",
         });
 
-        var result = md.render(data);
-        var html = template.replace("<slot>", result);
-        var name = file.replace(".md", ".html");
+        const isPartial = file.startsWith("_");
+        if (isPartial) {
+          const name = file.replace("_", "").replace(".md", "");
+          partials[name] = data;
+        } else {
+          for (const [name, content] of Object.entries(partials)) {
+            data = data.replace(`<slot name="${name}">`, content);
+          }
 
-        writeFile(join(dest, name), html);
+          const markdown = md.render(data);
+          const html = template.replace("<slot>", markdown);
+          const name = file.replace(".md", ".html");
+          writeFile(join(dest, name), html);
+        }
       }
     }
 

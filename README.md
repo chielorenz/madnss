@@ -11,8 +11,8 @@ Create a folder named `pages/` and add some `.md` files in it. Run `node main.js
 - [x] try out markdown-it and try to convert a simple md to html
 - [x] try to convert multiple files from /pages to /public
 - [x] create cli to execute commands
-- [ ] create the "serve" command
-- [ ] how to implement a live-reload server to serve public folder on the "serve" command
-- [ ] add markdown-it-attrs to add classes
+- [x] create the "serve" command
+- [x] how to implement a live-reload server to serve public folder on the "serve" command
+- [x] implement partials/
 - [ ] add markdown-it-frtont-matter to update the template
-- [ ] implement partials/
+- [ ] add markdown-it-attrs to add classes
