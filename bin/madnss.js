@@ -66,7 +66,7 @@ switch (command) {
     console.log(`Initializing Madnss project on "${source}"`);
     execSync("npm i https://github.com/b1n01/madnss");
     execSync(
-      "node -p \"JSON.stringify({...require('./package.json'), scripts: {watch: 'madnss watch'}}, null, 2)\" > package-updated.json"
+      "node -p \"JSON.stringify({...require('./package.json'), scripts: {dev: 'madnss serve src public'}}, null, 2)\" > package-updated.json"
     );
     execSync("mv package-updated.json package.json");
     execSync("node ./node_modules/madnss/bin/madnss.js demo src public", {
