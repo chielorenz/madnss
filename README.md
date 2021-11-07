@@ -14,5 +14,7 @@ Create a folder named `pages/` and add some `.md` files in it. Run `node main.js
 - [x] create the "serve" command
 - [x] how to implement a live-reload server to serve public folder on the "serve" command
 - [x] implement partials/
-- [ ] add markdown-it-frtont-matter to update the template
+- [x] add markdown-it-frtont-matter to update the template
+- [ ] allow globals
 - [ ] add markdown-it-attrs to add classes
+- [ ] allow custom template.html
