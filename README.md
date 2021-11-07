@@ -17,4 +17,5 @@ Create a folder named `pages/` and add some `.md` files in it. Run `node main.js
 - [x] add markdown-it-frtont-matter to update the template
 - [x] allow globals
 - [x] add markdown-it-attrs to add classes
+- [x] implement the init function
 - [ ] allow custom template.html

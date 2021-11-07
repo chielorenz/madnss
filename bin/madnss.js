@@ -64,6 +64,7 @@ const demo = async (source, dest) => {
 switch (command) {
   case "init":
     console.log(`Initializing Madnss project on "${source}"`);
+    execSync("npm i -y");
     execSync("npm i https://github.com/b1n01/madnss");
     execSync(
       "node -p \"JSON.stringify({...require('./package.json'), scripts: {dev: 'madnss serve src public'}}, null, 2)\" > package-updated.json"
@@ -72,7 +73,7 @@ switch (command) {
     execSync("node ./node_modules/madnss/bin/madnss.js demo src public", {
       stdio: "inherit",
     });
-    console.log('Run "npm run dev" to serve your projet');
+    console.log('All done! Run "npm run dev" to serve your projet');
     break;
   case "build":
     madnss(source, dest);
