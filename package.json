@@ -2,6 +2,9 @@
   "name": "madnss",
   "version": "0.0.1",
   "type": "module",
+  "bin": {
+    "madnss": "./bin/madnss.js"
+  },
   "scripts": {
     "dev": "node bin/madnss.js demo dev && concurrently -n watch,serve \"nodemon -e js,html --ignore dev bin/madnss.js watch dev dev/public\" \"live-server dev/public\""
   },
