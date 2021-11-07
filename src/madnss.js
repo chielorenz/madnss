@@ -2,8 +2,10 @@ import { readdir, readFile, writeFile, mkdir, stat } from "fs/promises";
 import { join, dirname } from "path";
 import { fileURLToPath } from "url";
 import MarkdownIt from "markdown-it";
+import markdownItAttrs from "markdown-it-attrs";
 
-const md = new MarkdownIt();
+const md = new MarkdownIt({ html: true });
+md.use(markdownItAttrs);
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const template = await readFile(join(__dirname, "template.html"), {
   encoding: "utf8",
@@ -96,10 +98,8 @@ export default async (source, dest) => {
             headTags.push(globals);
           }
 
-          if (headTags) {
-            const head = headTags.join("");
-            html = html.replace('<slot name="{head}">', head);
-          }
+          const head = headTags.join("");
+          html = html.replace('<slot name="{head}">', head);
 
           const markdown = md.render(data);
           html = html.replace('<slot name="{body}">', markdown);

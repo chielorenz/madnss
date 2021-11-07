@@ -8,7 +8,8 @@
   "dependencies": {
     "chokidar": "^3.5.2",
     "live-server": "^1.2.1",
-    "markdown-it": "^12.2.0"
+    "markdown-it": "^12.2.0",
+    "markdown-it-attrs": "^4.1.0"
   },
   "devDependencies": {
     "concurrently": "^6.3.0",
