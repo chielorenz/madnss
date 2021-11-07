@@ -70,6 +70,8 @@ export default async (source, dest) => {
       var isMd = file.split(".").pop() === "md";
 
       if (stats.isFile() && isMd) {
+        var html = template;
+        var headTags = [];
         var data = await readFile(join(source, file), {
           encoding: "utf8",
         });
@@ -83,13 +85,19 @@ export default async (source, dest) => {
             data = data.replace(`<slot name="${name}">`, content);
           }
 
-          var html = template;
-
           const matter = data.match(/---([\s\S]*)---/);
-          if (matter || globals) {
+          if (matter) {
             const [fullMatch, content] = matter;
             data = data.replace(fullMatch, "");
-            const head = [content, globals].join("");
+            headTags.push(content);
+          }
+
+          if (globals) {
+            headTags.push(globals);
+          }
+
+          if (headTags) {
+            const head = headTags.join("");
             html = html.replace('<slot name="{head}">', head);
           }
 

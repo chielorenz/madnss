@@ -42,10 +42,20 @@ const demo = async (dest) => {
     console.log(`Cannot create demo on existing folder "${source}"`);
   } else {
     fs.mkdirSync(source);
-    var data = "# Madness init";
-    fs.writeFile(path.join(source, "index.md"), data, async () => {
-      await madnss(source, path.join(source, "public"));
-    });
+
+    var data = `---\n<title>Index | Madnss</title>\n---\n# Index\n<slot name="nav">`;
+    fs.writeFileSync(path.join(source, "index.md"), data);
+
+    var data = `---\n<title>About | Madnss</title>\n---\n# About\n<slot name="nav">`;
+    fs.writeFileSync(path.join(source, "about.md"), data);
+
+    var data = `- [index.html](index.html)\n- [about.html](about.html)\n`;
+    fs.writeFileSync(path.join(source, "_nav.md"), data);
+
+    var data = `---\n<meta charset="utf-8">\n---`;
+    fs.writeFileSync(path.join(source, "_globals.md"), data);
+
+    madnss(source, path.join(source, "public"));
   }
 };
 
