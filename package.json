@@ -6,9 +6,10 @@
     "madnss": "./bin/madnss.js"
   },
   "scripts": {
-    "dev": "node bin/madnss.js demo dev && concurrently -n watch,serve \"nodemon -e js,html --ignore dev bin/madnss.js watch dev dev/public\" \"live-server dev/public\""
+    "dev": "node bin/madnss.js demo dev && concurrently -n watch,serve \"nodemon -e js,html --ignore dev bin/madnss.js watch dev dev/public\" \"browser-sync start -s dev/public -f dev/public --no-ui --no-notify\""
   },
   "dependencies": {
+    "browser-sync": "^2.27.7",
     "chokidar": "^3.5.2",
     "live-server": "^1.2.1",
     "markdown-it": "^12.2.0",

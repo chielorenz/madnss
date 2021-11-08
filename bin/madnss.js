@@ -2,7 +2,7 @@
 import path from "path";
 import fs from "fs";
 import chokidar from "chokidar";
-import server from "live-server";
+import bs from "browser-sync";
 import madnss from "../src/madnss.js";
 import { execSync } from "child_process";
 
@@ -83,7 +83,7 @@ switch (command) {
     break;
   case "serve":
     await watch(source, dest);
-    server.start({ root: dest });
+    bs.init({ server: dest, files: dest, notify: false, ui: false });
     break;
   case "demo":
     demo(source, dest);
