@@ -6,7 +6,7 @@
     "madnss": "./bin/madnss.js"
   },
   "scripts": {
-    "dev": "node bin/madnss.js init dev && concurrently -n watch,serve \"nodemon -e js,html --ignore dev --exec \\\"bin/madnss.js -i dev/src -o dev/public -w\\\"\" \"browser-sync start -s dev/public -f dev/public --no-ui --no-notify\""
+    "dev": "node bin/madnss.js init dev && concurrently -n watch,serve \"nodemon -e js,html --ignore dev --exec \\\"bin/madnss.js -i dev/src -o dev/public -w\\\"\" \"bin/madnss.js serve dev/public\""
   },
   "dependencies": {
     "@tailwindcss/typography": "^0.4.1",

@@ -6,8 +6,10 @@ import chokidar from "chokidar";
 import madnss from "../src/madnss.js";
 import { execSync } from "child_process";
 import { Command } from "commander/esm.mjs";
+import browserSync from "browser-sync";
 
 const program = new Command();
+const bs = browserSync.create();
 
 // Available commands:
 // madness [build] -s|--source [./src] -d|--dest [./public] -w|--watch -f|--flavour=[tailwindcss|vanilla]
@@ -59,6 +61,7 @@ program
     "tailwindcss"
   )
   .option("-w, --watch", "watch input folder for changes")
+  .option("-s, --serve", "serve output folder")
   .action(async (opts) => {
     const input = path.join(process.cwd(), opts.input);
     const output = path.join(process.cwd(), opts.output);
@@ -93,14 +96,21 @@ program
   .argument("<folder>", "the folder where to create the project")
   .action(async (folder) => {
     const dest = path.join(process.cwd(), folder);
-    console.log(
-      "Init command",
-      dest,
-      path.join(dest, "src"),
-      path.join(dest, "public")
-    );
     await demo(path.join(dest, "src"), path.join(dest, "public"));
-    console.log("All done");
+    console.log("Project initilized");
+  });
+
+program
+  .command("serve")
+  .description("Serve a folder")
+  .argument("<folder>", "the folder to serve")
+  .action(async (folder) => {
+    bs.init({
+      server: folder,
+      watch: true,
+      ui: false,
+      notify: false,
+    });
   });
 
 program.parse(process.argv);
