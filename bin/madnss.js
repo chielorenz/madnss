@@ -67,6 +67,8 @@ program
     const output = path.join(process.cwd(), opts.output);
     const styleOut = path.join(output, "/styles.css");
 
+    await madnss(input, output);
+
     if (opts.flavour === "tailwindcss") {
       const purge = [
         path.join(input, "**/*.md"),
@@ -77,11 +79,10 @@ program
       if (!fs.existsSync(tailwindConfig)) {
         tailwindConfig = "node_modules/madnss/tailwind.config.cjs";
       }
+
       const cmd = `node node_modules/tailwindcss/lib/cli.js -c ${tailwindConfig}`;
       execSync(`${cmd} -o ${styleOut} --purge="${purge}" --jit -m`);
     }
-
-    await madnss(input, output);
 
     if (opts.watch) {
       chokidar
