@@ -1,6 +1,6 @@
 # Madnss
 
-Madnss (read "madness") is a proof-of-concept simple **Ma**rk**d**ow**n** **s**tatic **s**ite (generator).
+Madnss (read "madness") is a proof-of-concept opinionated simple **Ma**rk**d**ow**n** **s**tatic **s**ite (generator) powered by Tailwindcss.
 
 ## Quick start
 
