@@ -88,6 +88,15 @@ program
       }
       madnss(input, output);
     }
+
+    if (opts.serve) {
+      bs.init({
+        server: output,
+        watch: true,
+        ui: false,
+        notify: false,
+      });
+    }
   });
 
 program
@@ -114,47 +123,3 @@ program
   });
 
 program.parse(process.argv);
-
-/**
- * Watch sorce for changes and put the reult dest folder
- *
- * @param {string} source
- * @param {string} dest
- */
-const watch = async (source, dest) => {
-  await madnss(source, dest);
-  chokidar
-    .watch(source, { ignoreInitial: true, ignored: dest })
-    .on("all", () => madnss(source, dest));
-};
-
-// switch (command) {
-//   case "init":
-//     console.log(`Initializing Madnss project on "${source}"`);
-//     execSync("npm i -y");
-//     execSync("npm i https://github.com/b1n01/madnss");
-//     execSync(
-//       "node -p \"JSON.stringify({...require('./package.json'), scripts: {dev: 'madnss serve src public'}}, null, 2)\" > package-updated.json"
-//     );
-//     execSync("mv package-updated.json package.json");
-//     execSync("node ./node_modules/madnss/bin/madnss.js demo src public", {
-//       stdio: "inherit",
-//     });
-//     console.log('All done! Run "npm run dev" to serve your projet');
-//     break;
-//   case "build":
-//     madnss(source, dest);
-//     break;
-//   case "watch":
-//     watch(source, dest);
-//     break;
-//   case "serve":
-//     await watch(source, dest);
-//     bs.init({ server: dest, files: dest, notify: false, ui: false });
-//     break;
-//   case "demo":
-//     demo(source, dest);
-//     break;
-//   default:
-//     console.log(`Invalid command "${command}"`);
-// }
