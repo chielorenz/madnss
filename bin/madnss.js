@@ -66,27 +66,27 @@ program
     const input = path.join(process.cwd(), opts.input);
     const output = path.join(process.cwd(), opts.output);
     const styleOut = path.join(output, "/styles.css");
-    const purge = [
-      path.join(input, "**/*.md"),
-      path.join(output, "**/*.html"),
-    ].join(",");
-    const cmd =
-      "node node_modules/tailwindcss/lib/cli.js -c tailwind.config.cjs";
+
+    if (opts.flavour === "tailwindcss") {
+      const purge = [
+        path.join(input, "**/*.md"),
+        path.join(output, "**/*.html"),
+      ].join(",");
+
+      var tailwindConfig = "tailwind.config.cjs";
+      if (!fs.existsSync(tailwindConfig)) {
+        tailwindConfig = "node_modules/madnss/tailwind.config.cjs";
+      }
+      const cmd = `node node_modules/tailwindcss/lib/cli.js -c ${tailwindConfig}`;
+      execSync(`${cmd} -o ${styleOut} --purge="${purge}" --jit -m`);
+    }
+
+    await madnss(input, output);
 
     if (opts.watch) {
-      if (opts.flavour === "tailwindcss") {
-        execSync(`${cmd} -o ${styleOut} --purge="${purge}" --jit`);
-      }
-
-      await madnss(input, output);
       chokidar
         .watch(input, { ignoreInitial: true })
         .on("all", () => madnss(input, output));
-    } else {
-      if (opts.flavour === "tailwindcss") {
-        execSync(`${cmd} -o ${styleOut} --purge="${purge}" --jit -m`);
-      }
-      madnss(input, output);
     }
 
     if (opts.serve) {
