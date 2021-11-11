@@ -5,42 +5,15 @@ import fs from "fs";
 import chokidar from "chokidar";
 import madnss from "../src/madnss.js";
 import { execSync } from "child_process";
-import { Command } from "commander/esm.mjs";
+import { Command, Option } from "commander/esm.mjs";
 import browserSync from "browser-sync";
+import degit from "degit";
+import { join, dirname } from "path";
+import { fileURLToPath } from "url";
 
 const program = new Command();
 const bs = browserSync.create();
-
-// Available commands:
-// madness [build] -s|--source [./src] -d|--dest [./public] -w|--watch -f|--flavour=[tailwindcss|vanilla]
-// madness init [name]
-
-/**
- * Create a demo project on dest folder
- *
- * @param {strind} dest
- */
-const demo = async (source, dest) => {
-  if (fs.existsSync(source)) {
-    console.log(`Cannot create demo on existing folder "${source}"`);
-  } else {
-    fs.mkdirSync(source, { recursive: true });
-
-    var data = `---\n<title>Index | Madnss</title>\n---\n# Index\n<slot name="nav">`;
-    fs.writeFileSync(path.join(source, "index.md"), data);
-
-    var data = `---\n<title>About | Madnss</title>\n---\n# About\n<slot name="nav">`;
-    fs.writeFileSync(path.join(source, "about.md"), data);
-
-    var data = `- [Home](index.html)\n- [About](about.html)\n`;
-    fs.writeFileSync(path.join(source, "_nav.md"), data);
-
-    var data = `---\n<meta charset="utf-8">\n---`;
-    fs.writeFileSync(path.join(source, "_globals.md"), data);
-
-    madnss(source, dest);
-  }
-};
+const __dirname = dirname(fileURLToPath(import.meta.url));
 
 program
   .command("build", { isDefault: true })
@@ -55,10 +28,10 @@ program
     "the output folder that will contail your .html files",
     "./public"
   )
-  .option(
-    "-f, --flavour <type>",
-    "choose a style engine [tailwindcss|vanilla]",
-    "tailwindcss"
+  .addOption(
+    new Option("-f, --flavour <type>", "choose a style engine", "tailwindcss")
+      .choices(["tailwindcss", "vanilla"])
+      .default("tailwindcss")
   )
   .option("-w, --watch", "watch input folder for changes")
   .option("-s, --serve", "serve output folder")
@@ -67,7 +40,14 @@ program
     const output = path.join(process.cwd(), opts.output);
     const styleOut = path.join(output, "/styles.css");
 
-    await madnss(input, output);
+    var template;
+    if (opts.flavour == "tailwindcss") {
+      template = "../assets/template-tailwindcss.html";
+    } else {
+      template = "../assets/template-vanilla.html";
+    }
+
+    await madnss({ input, output, template });
 
     if (opts.flavour === "tailwindcss") {
       const purge = [
@@ -77,17 +57,20 @@ program
 
       var tailwindConfig = "tailwind.config.cjs";
       if (!fs.existsSync(tailwindConfig)) {
-        tailwindConfig = "node_modules/madnss/tailwind.config.cjs";
+        tailwindConfig = join(__dirname, "../tailwind.config.cjs");
       }
 
       const cmd = `node node_modules/tailwindcss/lib/cli.js -c ${tailwindConfig}`;
-      execSync(`${cmd} -o ${styleOut} --purge="${purge}" --jit -m`);
+      execSync(`${cmd} -o ${styleOut} --purge="${purge}" --jit -m`, {
+        // is ignoring tailwind output a good idea?
+        stdio: "ignore",
+      });
     }
 
     if (opts.watch) {
       chokidar
         .watch(input, { ignoreInitial: true })
-        .on("all", () => madnss(input, output));
+        .on("all", () => madnss({ input, output, template }));
     }
 
     if (opts.serve) {
@@ -104,10 +87,33 @@ program
   .command("init")
   .description("Initialize a new Madnss site")
   .argument("<folder>", "the folder where to create the project")
-  .action(async (folder) => {
+  .addOption(
+    new Option("-f, --flavour <type>", "choose a style engine", "")
+      .choices(["tailwindcss", "vanilla"])
+      .default("tailwindcss")
+  )
+  .action(async (folder, opts) => {
     const dest = path.join(process.cwd(), folder);
-    await demo(path.join(dest, "src"), path.join(dest, "public"));
-    console.log("Project initilized");
+
+    if (fs.existsSync(dest)) {
+      console.log(`Cannot create demo on existing folder "${dest}"`);
+    } else {
+      fs.mkdirSync(dest, { recursive: true });
+
+      var template;
+      if (opts.flavour == "tailwindcss") {
+        template = "b1n01/madnss-tailwindcss-template#main";
+      } else {
+        template = "b1n01/madnss-vanilla-template#main";
+      }
+
+      const emitter = degit(template);
+      await emitter.clone(dest);
+
+      // Should we run `npm i` here?
+
+      console.log(`Start the Madnss on ${dest} folder`);
+    }
   });
 
 program
