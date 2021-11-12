@@ -6,7 +6,7 @@
     "madnss": "./bin/madnss.js"
   },
   "scripts": {
-    "dev": "node bin/madnss.js init dev && concurrently -n watch,serve \"nodemon -e js,html --ignore dev --exec \\\"bin/madnss.js -i dev/src -o dev/public -w\\\"\" \"bin/madnss.js serve dev/public\""
+    "dev": "node bin/madnss.js init site && concurrently -n watch,serve \"nodemon -e js,html --ignore site --exec \\\"bin/madnss.js -i site/src -o site/public -w\\\"\" \"bin/madnss.js serve site/public\""
   },
   "dependencies": {
     "@tailwindcss/typography": "^0.4.1",

@@ -7,7 +7,9 @@ Madnss (read "madness") is a proof-of-concept opinionated simple **Ma**rk**d**ow
 Initialize a new project and spin up the development server:
 
 ```
-npx https://github.com/b1n01/madnss init
+npx github:b1n01/madnss init my-site
+cd my-syte
+npm i
 npm run dev
 ```
 

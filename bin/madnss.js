@@ -40,12 +40,11 @@ program
     const output = path.join(process.cwd(), opts.output);
     const styleOut = path.join(output, "/styles.css");
 
-    var template;
-    if (opts.flavour == "tailwindcss") {
-      template = "../assets/template-tailwindcss.html";
-    } else {
-      template = "../assets/template-vanilla.html";
-    }
+    const template = fs
+      .readFileSync(
+        path.join(__dirname, `../assets/template-${opts.flavour}.html`)
+      )
+      .toString();
 
     await madnss({ input, output, template });
 

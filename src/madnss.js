@@ -27,11 +27,7 @@ const folderExist = async (path) => {
  * Parse all .md files in the input folder to .html and put them
  * in the output folder
  */
-export default async ({
-  input = "src",
-  output = "public",
-  template = "../assets/template-tailwindcss.html",
-}) => {
+export default async ({ input = "src", output = "public", template }) => {
   if (!(await folderExist(input))) {
     console.log(`Folder "${input}" not found`);
     process.exit(1);
@@ -46,9 +42,14 @@ export default async ({
     var globals = "";
     var files = await readdir(input);
     files.sort();
-    const htmlTemplate = (await readFile(join(__dirname, template))).toString();
+    var htmlTemplate = template;
 
     try {
+      if (!template) {
+        const path = "../assets/template-tailwindcss.html";
+        htmlTemplate = (await readFile(join(__dirname, path))).toString();
+      }
+
       files = files.filter((file) => file !== "_globals.md");
       globals = await readFile(join(input, "_globals.md"), {
         encoding: "utf8",
