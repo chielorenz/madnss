@@ -43,18 +43,17 @@ export default async ({ input = "src", output = "public", template }) => {
     var files = await readdir(input);
     files.sort();
     var htmlTemplate = template;
+    if (!template) {
+      const path = "../assets/template-tailwindcss.html";
+      htmlTemplate = (await readFile(join(__dirname, path))).toString();
+    }
 
     try {
-      if (!template) {
-        const path = "../assets/template-tailwindcss.html";
-        htmlTemplate = (await readFile(join(__dirname, path))).toString();
-      }
-
       files = files.filter((file) => file !== "_globals.md");
       globals = await readFile(join(input, "_globals.md"), {
         encoding: "utf8",
       });
-      const matter = globals.match(/---([\s\S]*)---/);
+      const matter = globals.match(/^---([\s\S]*)---/);
       globals = matter[1];
     } catch {}
 
