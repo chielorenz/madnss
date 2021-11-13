@@ -31,8 +31,8 @@ program
   .command("build", { isDefault: true })
   .description("Build your site")
   .option(
-    "-i, --input <folder>",
-    "the source folder containing your .md files",
+    "-i, --input <glob>",
+    "a glob path containing your .md files",
     "./src"
   )
   .option(
