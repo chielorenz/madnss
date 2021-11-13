@@ -4,7 +4,7 @@ import path from "path";
 import fs from "fs";
 import chokidar from "chokidar";
 import madnss from "../src/madnss.js";
-import { execSync } from "child_process";
+import { exec } from "child_process";
 import { Command, Option } from "commander/esm.mjs";
 import browserSync from "browser-sync";
 import degit from "degit";
@@ -14,6 +14,18 @@ import { fileURLToPath } from "url";
 const program = new Command();
 const bs = browserSync.create();
 const __dirname = dirname(fileURLToPath(import.meta.url));
+
+/**
+ * @param {string} path
+ */
+const serve = (path) => {
+  bs.init({
+    server: path,
+    watch: true,
+    ui: false,
+    notify: false,
+  });
+};
 
 program
   .command("build", { isDefault: true })
@@ -50,7 +62,7 @@ program
 
     if (opts.flavour === "tailwindcss") {
       const purge = [
-        path.join(input, "**/*.md"),
+        // path.join(input, "**/*.md"),
         path.join(output, "**/*.html"),
       ].join(",");
 
@@ -59,26 +71,44 @@ program
         tailwindConfig = join(__dirname, "../tailwind.config.cjs");
       }
 
+      const watch = opts.watch ? "-w" : "";
       const cmd = `node node_modules/tailwindcss/lib/cli.js -c ${tailwindConfig}`;
-      execSync(`${cmd} -o ${styleOut} --purge="${purge}" --jit -m`, {
-        // is ignoring tailwind output a good idea?
-        stdio: "ignore",
-      });
+      exec(`${cmd} -o ${styleOut} --purge="${purge}" ${watch} --jit -m`);
+
+      // proc.stderr.pipe(process.stderr);
+      // var isRunnning = false;
+      // proc.stderr.on("data", (data) => {
+      //   if (data.includes("Done in") && !isRunnning && opts.serve) {
+      //     console.log("Now we sould spin up browserSynck");
+      //     isRunnning = true;
+      //     bs.init({
+      //       server: output,
+      //       watch: true,
+      //       ui: false,
+      //       notify: false,
+      //     });
+      //   }
+      // });
     }
 
     if (opts.watch) {
-      chokidar
-        .watch(input, { ignoreInitial: true })
-        .on("all", () => madnss({ input, output, template }));
+      chokidar.watch(input, { ignoreInitial: true }).on("all", () => {
+        madnss({ input, output, template });
+      });
     }
 
     if (opts.serve) {
-      bs.init({
-        server: output,
-        watch: true,
-        ui: false,
-        notify: false,
-      });
+      if (opts.flavour == "tailwindcss") {
+        // Wait for `styles.css` to be ready than start the server (only once)
+        const watcher = chokidar
+          .watch(path.join(output, "styles.css"))
+          .on("change", () => {
+            serve(output);
+            watcher.close();
+          });
+      } else {
+        serve(output);
+      }
     }
   });
 
@@ -119,13 +149,6 @@ program
   .command("serve")
   .description("Serve a folder")
   .argument("<folder>", "the folder to serve")
-  .action(async (folder) => {
-    bs.init({
-      server: folder,
-      watch: true,
-      ui: false,
-      notify: false,
-    });
-  });
+  .action(serve);
 
 program.parse(process.argv);
