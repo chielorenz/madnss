@@ -5,6 +5,7 @@ import { globby } from "globby";
 import jsdom from "jsdom";
 import MarkdownIt from "markdown-it";
 import markdownItAttrs from "markdown-it-attrs";
+import { read } from "fs";
 
 const { JSDOM } = jsdom;
 const md = new MarkdownIt({ html: true });
@@ -101,25 +102,36 @@ export default async ({ input = "src", output = "public", template }) => {
         } else {
           // data is the file content
 
-          // Find all available partials name in this file
-          const matches = data.matchAll(/<p-([\w-]+)[^>]*>/g);
-          for (const match of matches) {
-            const [full, partial] = match;
-            partials.push(partial);
-          }
+          var newData = await hydrate(data, files);
+          console.log("New Data", newData);
 
-          // Remove duplicated partials
-          partials = [...new Set(partials)];
+          // // Find all available partials name in this file
+          // const matches = data.matchAll(/<p-([\w-]+)[^>]*>/g);
+          // for (const match of matches) {
+          //   const [full, partial] = match;
+          //   partials.push(partial);
+          // }
 
-          partials.forEach((partial) => {
-            const dom = new JSDOM(data);
-            const elems = dom.window.document.querySelectorAll(`p-${partial}`);
-            elems.forEach((e) => {
-              console.log(`Partial "${partial}" has content: "${e.innerHTML}"`);
-              // e.attributes.label.value <- attribute value
-              // TODO keep going from here
-            });
-          });
+          // // Remove duplicated partials
+          // partials = [...new Set(partials)];
+
+          // partials.forEach(async (partial) => {
+          //   // fetch the partial content
+          //   var partialPath = files.filter(
+          //     (file) => basename(file) === `_${partial}.md`
+          //   );
+
+          //   var partialContent = (await readFile(partialPath)).toString();
+          //   var partial = await hydrate(partialContent);
+
+          //   const dom = new JSDOM(data);
+          //   const elems = dom.window.document.querySelectorAll(`p-${partial}`);
+          //   elems.forEach((e) => {
+          //     console.log(`Partial "${partial}" has content: "${e.innerHTML}"`);
+          //     // e.attributes.label.value <- attribute value
+          //     // TODO keep going from here
+          //   });
+          // });
 
           // for (const [name, content] of Object.entries(partials)) {
           //   data = data.replace(`<slot name="${name}">`, content);
@@ -152,4 +164,71 @@ export default async ({ input = "src", output = "public", template }) => {
   } catch (e) {
     console.log(e);
   }
+};
+
+const hydrate = async (data, files) => {
+  var partials = [];
+
+  // Find all available partials name in this file
+  const matches = data.matchAll(/<p-([\w-]+)[^>]*>/g);
+  for (const match of matches) {
+    const [full, partial] = match;
+    partials.push(partial);
+  }
+
+  // Remove duplicated partials
+  partials = [...new Set(partials)];
+
+  for (const partial of partials) {
+    // fetch the partial content
+    var path = files.find((file) => basename(file) === `_${partial}.md`);
+
+    var templateGlob = (await readFile(path)).toString();
+
+    // var partial = await hydrate(content);
+
+    const dom = new JSDOM(data, { includeNodeLocations: true });
+    const elems = dom.window.document.querySelectorAll(`p-${partial}`);
+
+    for (const elem of elems) {
+      var template = templateGlob;
+      var partialContent = elem.innerHTML;
+      const dom2 = new JSDOM(template, { includeNodeLocations: true });
+      const slot = dom2.window.document.querySelector("slot");
+      if (slot) {
+        // var slotData = slot.outerHTML;
+        var pos = dom2.nodeLocation(slot);
+        var replace = partialContent || slot.innerHTML;
+        template =
+          template.substring(0, pos.startOffset) +
+          replace +
+          template.substring(pos.endOffset, template.length);
+      }
+
+      // template = dom.serialize();
+      // if (dom.children.length === 0) {
+      //   template = dom.textContent;
+      // } else {
+      //   template = dom.firstChild.outerHTML;
+      // }
+
+      console.log(`Partial "${partial}" has content: "${elem.innerHTML}"`);
+
+      // elem.replaceWith(template);
+      // var elemData = elem.outerHTML;
+      const dom3 = new JSDOM(data, { includeNodeLocations: true });
+      var newElem = dom3.get;
+      var pos = dom3.nodeLocation(elem);
+      data =
+        data.substring(0, pos.startOffset) +
+        template +
+        data.substring(pos.endOffset, data.length);
+      // data = data.replace(elemData, template);
+    }
+
+    // data = dom.serialize();
+    // data = dom.textContent;
+  }
+
+  return data;
 };
