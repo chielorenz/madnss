@@ -192,11 +192,21 @@ const hydrate = async (data, files) => {
     templateGlob = await hydrate(templateGlob, files);
 
     const dom = new JSDOM(data, { includeNodeLocations: true });
-    const elems = dom.window.document.querySelectorAll(`p-${partial}`);
+    // see https://developer.mozilla.org/en-US/docs/Web/CSS/:scope
+    const elems = dom.window.document.body.querySelectorAll(`p-${partial}`);
 
-    for (const elem of elems) {
+    elemsLoop: for (const elem of elems) {
+      // Check if element is child of another partial tag, if so skip this partial
+      // because its the content of another partial
+      for (const parent of partials) {
+        if (elem.parentElement.closest(`p-${parent}`)) {
+          continue elemsLoop;
+        }
+      }
+
       var template = templateGlob;
       var partialContent = elem.innerHTML;
+      partialContent = await hydrate(partialContent, files);
       const dom2 = new JSDOM(template, { includeNodeLocations: true });
       const slot = dom2.window.document.querySelector("slot");
       if (slot) {
