@@ -1,11 +1,11 @@
-import { readFile, writeFile, mkdir, stat, access } from "fs/promises";
+import { readFile, writeFile, mkdir, access } from "fs/promises";
+import { exit } from "process";
 import { join, dirname, basename } from "path";
 import { fileURLToPath } from "url";
 import { globby } from "globby";
 import jsdom from "jsdom";
 import MarkdownIt from "markdown-it";
 import markdownItAttrs from "markdown-it-attrs";
-import { read } from "fs";
 
 const { JSDOM } = jsdom;
 const md = new MarkdownIt({ html: true });
@@ -13,271 +13,233 @@ md.use(markdownItAttrs);
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
 /**
- * Check if a folder exists
- *
- * @param {string} path Folder path
- * @returns
- */
-const folderExist = async (path) => {
-  try {
-    await access(path);
-    return true;
-  } catch {
-    return false;
-  }
-};
-
-/**
  * Parse all .md files in the input folder to .html and put them
  * in the output folder
  */
 export default async ({ input = "src", output = "public", template }) => {
-  if (!(await folderExist(input))) {
-    console.log(`Folder "${input}" not found`);
-    process.exit(1);
+  await checkIO(input, output);
+
+  if (!template) {
+    const path = "../assets/template-tailwindcss.html";
+    template = (await readFile(join(__dirname, path))).toString();
   }
 
-  if (!(await folderExist(output))) {
-    await mkdir(output);
+  const files = (await globby(input))
+    .filter((file) => file.split(".").pop() === "md")
+    .sort();
+  const pages = files.filter((file) => !basename(file).startsWith("_"));
+  const partials = files.filter((file) => basename(file).startsWith("_"));
+  const global = files.find((file) => basename(file) === "_globals.md");
+
+  // TODO handle front matters
+  // const globalFM = global ? getFrontMatter(global) : null;
+
+  for (const page of pages) {
+    const name = basename(page).replace(".md", ".html");
+    const content = (await readFile(page)).toString();
+    const hydrated = await hydrate(content, partials);
+    const markdown = md.render(hydrated);
+
+    const result = template.replace('<slot name="{body}">', markdown);
+    writeFile(join(output, name), result);
   }
 
-  /**
-   * 1. read all non partials and no globals file
-   * 2. for each file check if it contains partials
-   * 3. if so search that partials in the files name array
-   * 4. if it is not found throw an error
-   * 5. otherwise read that partial and check if it is using partials itself
-   * 6. if so go on from poin 3
-   * 7. than if the prtials has a single slot replace it with the content of the partiels in the point 2
-   * 8. if the partias has a named slot searhc in the caller for attributes that matches the name of the slot
-   * 9. if found replace the slot in the partials otherwise use the default value
-   * 10. replace the final content in the original file
-   *
-   * Note:
-   * - check for infilite loops'
-   * - can the default value for a slot be required???
-   *
-   */
-  try {
-    // var partials = {};
-    var partials = [];
-    var globals = "";
-    // var files = await readdir(input);
-    const files = await globby(input);
-    files.sort();
-    var htmlTemplate = template;
-    if (!template) {
-      const path = "../assets/template-tailwindcss.html";
-      htmlTemplate = (await readFile(join(__dirname, path))).toString();
-    }
-
-    // searcing for globals
-    try {
-      files = files.filter((file) => file !== "_globals.md");
-      globals = await readFile(join(input, "_globals.md"), {
-        encoding: "utf8",
-      });
-      const matter = globals.match(/^---([\s\S]*)---/);
-      globals = matter[1];
-    } catch {}
-
-    console.log(files);
-
-    for (const file of files) {
-      const isPartial = basename(file).startsWith("_");
-      if (isPartial) continue;
-
-      var stats = await stat(file);
-      var isMd = file.split(".").pop() === "md";
-
-      if (stats.isFile() && isMd) {
-        var html = htmlTemplate;
-        var headTags = [];
-        var data = (await readFile(file)).toString();
-
-        const isPartial = basename(file).startsWith("_");
-        if (isPartial) {
-          const name = basename(file).replace("_", "").replace(".md", "");
-          partials[name] = data;
-        } else {
-          // data is the file content
-
-          // TODO check for infilite loop
-          var newData = await hydrate(data, files);
-          console.log("New Data", newData);
-
-          // // Find all available partials name in this file
-          // const matches = data.matchAll(/<p-([\w-]+)[^>]*>/g);
-          // for (const match of matches) {
-          //   const [full, partial] = match;
-          //   partials.push(partial);
-          // }
-
-          // // Remove duplicated partials
-          // partials = [...new Set(partials)];
-
-          // partials.forEach(async (partial) => {
-          //   // fetch the partial content
-          //   var partialPath = files.filter(
-          //     (file) => basename(file) === `_${partial}.md`
-          //   );
-
-          //   var partialContent = (await readFile(partialPath)).toString();
-          //   var partial = await hydrate(partialContent);
-
-          //   const dom = new JSDOM(data);
-          //   const elems = dom.window.document.querySelectorAll(`p-${partial}`);
-          //   elems.forEach((e) => {
-          //     console.log(`Partial "${partial}" has content: "${e.innerHTML}"`);
-          //     // e.attributes.label.value <- attribute value
-          //     // TODO keep going from here
-          //   });
-          // });
-
-          // for (const [name, content] of Object.entries(partials)) {
-          //   data = data.replace(`<slot name="${name}">`, content);
-          // }
-
-          const matter = data.match(/---([\s\S]*)---/);
-          if (matter) {
-            const [fullMatch, content] = matter;
-            data = data.replace(fullMatch, "");
-            headTags.push(content);
-          }
-
-          if (globals) {
-            headTags.push(globals);
-          }
-
-          // TODO use JSDOM to add stuf to head and body
-
-          const head = headTags.join("");
-          html = html.replace('<slot name="{head}">', head);
-
-          const markdown = md.render(newData);
-          html = html.replace('<slot name="{body}">', markdown);
-
-          const name = basename(file).replace(".md", ".html");
-          writeFile(join(output, name), html);
-        }
-      }
-    }
-
-    console.log(`Build generated on ${output}`);
-  } catch (e) {
-    console.log(e);
-  }
+  log(`Build generated in ${output}`);
 };
 
-const hydrate = async (data, files) => {
-  var partials = [];
+/**
+ * Hydrate a string with all its partials content
+ *
+ * @param {string} content
+ * @param {array} partials
+ * @returns
+ */
+const hydrate = async (content, files) => {
+  const partials = getPartialTags(content);
   var replacements = [];
 
-  // Find all available partials name in this file
-  const matches = data.matchAll(/<p-([\w-]+)[^>]*>/g);
-  for (const match of matches) {
-    const [full, partial] = match;
-    partials.push(partial);
-  }
-
-  // Remove duplicated partials
-  partials = [...new Set(partials)];
-
   for (const partial of partials) {
-    // fetch the partial content
-    var path = files.find((file) => basename(file) === `_${partial}.md`);
+    const path = getFilePath(`_${partial}.md`, files);
+    const partialContent = (await readFile(path)).toString();
+    const hydratedPartial = await hydrate(partialContent, files);
 
-    var templateGlob = (await readFile(path)).toString();
+    const dom = new JSDOM(content, { includeNodeLocations: true });
+    const elements = dom.window.document.body.querySelectorAll(`p-${partial}`);
 
-    templateGlob = await hydrate(templateGlob, files);
-
-    const dom = new JSDOM(data, { includeNodeLocations: true });
-    // see https://developer.mozilla.org/en-US/docs/Web/CSS/:scope
-    const elems = dom.window.document.body.querySelectorAll(`p-${partial}`);
-
-    elemsLoop: for (const elem of elems) {
-      // Check if element is child of another partial tag, if so skip this partial
-      // because its the content of another partial
-      for (const parent of partials) {
-        if (elem.parentElement.closest(`p-${parent}`)) {
-          continue elemsLoop;
-        }
+    elementssLoop: for (const elem of elements) {
+      if (isChildOfPartial(elem, partials)) {
+        continue elementssLoop;
       }
 
-      var template = templateGlob;
-      var partialContent = elem.innerHTML;
-      partialContent = await hydrate(partialContent, files);
-      const dom2 = new JSDOM(template, { includeNodeLocations: true });
-      const slot = dom2.window.document.querySelector("slot");
-      if (slot) {
-        // if slot has an attribute name we must search for a attribute with the same name and
-        // use that as content
+      var template = hydratedPartial;
+      const elemDOM = new JSDOM(template, { includeNodeLocations: true });
+      const slot = elemDOM.window.document.querySelector("slot");
 
-        var partialAttrs = {};
-        if (elem.hasAttributes()) {
-          var attrs = elem.attributes;
-          for (var i = attrs.length - 1; i >= 0; i--) {
-            partialAttrs[attrs[i].name] = attrs[i].value;
-          }
-        }
+      if (slot) {
+        const pos = elemDOM.nodeLocation(slot);
+        var value;
 
         if (slot.hasAttributes()) {
-          var slotName = slot.name;
-          if (partialAttrs[slotName]) {
-            var slotValue = partialAttrs[slotName];
-          } else {
-            slotValue = slot.innerHTML;
-          }
-          var pos = dom2.nodeLocation(slot);
-          template =
-            template.substring(0, pos.startOffset) +
-            slotValue +
-            template.substring(pos.endOffset, template.length);
+          const elemAttrs = getElemAttributes(elem);
+          value = elemAttrs[slot.name] || slot.innerHTML;
         } else {
-          var pos = dom2.nodeLocation(slot);
-          var replace = partialContent || slot.innerHTML;
-          template =
-            template.substring(0, pos.startOffset) +
-            replace +
-            template.substring(pos.endOffset, template.length);
+          value = elem.innerHTML
+            ? await hydrate(elem.innerHTML, files)
+            : slot.innerHTML;
         }
+
+        template = spliceString(template, pos, value);
       }
 
-      // template = dom.serialize();
-      // if (dom.children.length === 0) {
-      //   template = dom.textContent;
-      // } else {
-      //   template = dom.firstChild.outerHTML;
-      // }
-
-      console.log(`Partial "${partial}" has content: "${elem.innerHTML}"`);
-
-      // elem.replaceWith(template);
-      // var elemData = elem.outerHTML;
-      // data = data.replace(elemData, template);
       var pos = dom.nodeLocation(elem);
-      replacements.push({
-        start: pos.startOffset,
-        end: pos.endOffset,
-        content: template,
-      });
+      replacements.push({ template, ...pos });
     }
-
-    // data = dom.serialize();
-    // data = dom.textContent;
   }
 
+  return applyReplacements(content, replacements);
+};
+
+/**
+ * Get all partial tags ("<p-")
+ *
+ * @param {string} content
+ * @returns array
+ */
+const getPartialTags = (content) => {
+  var tags = [];
+  const matches = content.matchAll(/<p-([\w-]+)[^>]*>/g);
+  for (const match of matches) {
+    const [full, tag] = match;
+    tags.push(tag);
+  }
+
+  // remove duplicated values
+  return [...new Set(tags)];
+};
+
+/**
+ * Check is an element is child of a partial
+ *
+ * @param {DOMElement} element
+ * @param {array} partials
+ * @returns boolean
+ */
+const isChildOfPartial = (element, partials) => {
+  for (const partial of partials) {
+    if (element.parentElement.closest(`p-${partial}`)) {
+      return true;
+    }
+  }
+  return false;
+};
+
+/**
+ * Get all attributes of an element
+ *
+ * @param {DOMElem} elem
+ * @returns object
+ */
+const getElemAttributes = (elem) => {
+  var attributes = {};
+  if (elem.hasAttributes()) {
+    var attrs = elem.attributes;
+    for (var i = attrs.length - 1; i >= 0; i--) {
+      attributes[attrs[i].name] = attrs[i].value;
+    }
+  }
+
+  return attributes;
+};
+
+/**
+ * Splice the string in position pos and add the value
+ *
+ * @param {string} string
+ * @param {pos} pos JSDOM node location
+ * @param {string} value
+ * @returns
+ */
+const spliceString = (string, pos, value) => {
+  return (
+    string.substring(0, pos.startOffset) +
+    value +
+    string.substring(pos.endOffset, string.length)
+  );
+};
+
+/**
+ * Get the full path from the a file name
+ *
+ * @param {string} name
+ * @param {array} files
+ * @returns
+ */
+const getFilePath = (name, files) => {
+  const path = files.find((file) => basename(file) === name);
+  if (!path) {
+    error(`Partial "${partial} not found"`);
+    exit(1);
+  }
+
+  return path;
+};
+
+/**
+ * Apply a list of replacements to a string
+ *
+ * @param {string} content
+ * @param {array} replacements
+ */
+const applyReplacements = (content, replacements) => {
   var result = "";
   if (replacements.length) {
-    replacements.sort((a, b) => a.start - b.start);
+    replacements.sort((a, b) => a.startOffset - b.startOffset);
     var lastPos = 0;
     for (const rep of replacements) {
-      result += data.substring(lastPos, rep.start) + rep.content;
-      lastPos = rep.end;
+      result += content.substring(lastPos, rep.startOffset) + rep.template;
+      lastPos = rep.endOffset;
     }
   } else {
-    result = data;
+    result = content;
   }
 
   return result;
 };
+
+/**
+ * Ensure input and output folder are correcly set
+ *
+ * @param {string} input
+ * @param {string} output
+ */
+const checkIO = async (input, output) => {
+  try {
+    await access(input);
+  } catch {
+    error(`Input folder "${input}" not found`);
+    exit(1);
+  }
+
+  try {
+    await access(output);
+  } catch {
+    debug(`Creating output folder "${input}"`);
+    await mkdir(output);
+  }
+};
+
+/**
+ * Get front matters from a file
+ *
+ * @param {string} path
+ * @returns string | null
+ */
+const getFrontMatter = async (path) => {
+  const content = (await readFile(path)).toString();
+  const match = content.match(/^---([\s\S]*)---/);
+  return ([fullMatch, content] = match);
+};
+
+const log = (args) => console.log(args);
+const debug = (args) => log(args);
+const error = (args) => log(args);
