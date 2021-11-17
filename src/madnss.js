@@ -31,16 +31,24 @@ export default async ({ input = "src", output = "public", template }) => {
   const partials = files.filter((file) => basename(file).startsWith("_"));
   const global = files.find((file) => basename(file) === "_globals.md");
 
-  // TODO handle front matters
-  // const globalFM = global ? getFrontMatter(global) : null;
+  var globalFM = "";
+  if (global) {
+    const globalContent = (await readFile(global)).toString();
+    [globalFM] = await getFrontMatter(globalContent);
+  }
 
   for (const page of pages) {
     const name = basename(page).replace(".md", ".html");
-    const content = (await readFile(page)).toString();
+    const data = (await readFile(page)).toString();
+    const [fm, content] = await getFrontMatter(data);
+    const head = parseFM(globalFM + fm);
     const hydrated = await hydrate(content, partials);
-    const markdown = md.render(hydrated);
+    const body = md.render(hydrated);
 
-    const result = template.replace('<slot name="{body}">', markdown);
+    const result = template
+      .replace('<slot name="{head}">', head)
+      .replace('<slot name="{body}">', body);
+
     writeFile(join(output, name), result);
   }
 
@@ -229,15 +237,46 @@ const checkIO = async (input, output) => {
 };
 
 /**
- * Get front matters from a file
+ * Remove and return the front matters from a file
  *
  * @param {string} path
  * @returns string | null
  */
-const getFrontMatter = async (path) => {
-  const content = (await readFile(path)).toString();
+const getFrontMatter = async (content) => {
+  var fm = "";
   const match = content.match(/^---([\s\S]*)---/);
-  return ([fullMatch, content] = match);
+
+  if (match) {
+    var fullMatch = match[0];
+    fm = match[1];
+    content = content.replace(fullMatch, "");
+  }
+
+  return [fm, content];
+};
+
+/**
+ * Parse front matter by keeping only one <title> tag
+ *
+ * @param {string} content
+ * @returns string
+ */
+const parseFM = (content) => {
+  var lastTitle = "";
+  var head = "";
+
+  const dom = JSDOM.fragment(content);
+  dom.querySelectorAll("*").forEach((elem) => {
+    if (elem.tagName === "TITLE") {
+      lastTitle = elem.outerHTML;
+    } else {
+      head += elem.outerHTML;
+    }
+  });
+
+  head += lastTitle;
+
+  return head;
 };
 
 const log = (args) => console.log(args);
